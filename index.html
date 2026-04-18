@@ -1,75 +1,985 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <title>Love Rain</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Playfair+Display:wght@700&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <div class="fullscreen-overlay" id="fullscreenOverlay" aria-hidden="true">
-      <div class="fullscreen-card">
-        <p class="fullscreen-label">Phone View</p>
-        <h2>Open this love rain in fullscreen.</h2>
-        <p class="fullscreen-text">
-          If your phone browser blocks auto fullscreen, tap once and it will
-          open in fullscreen mode.
-        </p>
-        <button class="fullscreen-button" id="fullscreenButton" type="button">
-          Enter Fullscreen
-        </button>
-      </div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hand Gesture 3D Viewer</title>
+  <style>
+    :root {
+      --bg: #0b1320;
+      --panel: rgba(11, 19, 32, 0.88);
+      --panel-strong: rgba(17, 27, 46, 0.96);
+      --line: rgba(149, 184, 255, 0.18);
+      --text: #eef4ff;
+      --muted: #9eb1d4;
+      --accent: #73e0c2;
+      --accent-2: #7ab7ff;
+      --danger: #ff8a8a;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow: hidden;
+      color: var(--text);
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(115, 224, 194, 0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(122, 183, 255, 0.18), transparent 26%),
+        linear-gradient(180deg, #101828 0%, #08101d 100%);
+    }
+
+    .hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .start-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(4, 8, 18, 0.82);
+      backdrop-filter: blur(14px);
+    }
+
+    .start-card {
+      width: min(560px, 100%);
+      padding: 28px;
+      border-radius: 28px;
+      border: 1px solid rgba(122, 183, 255, 0.2);
+      background:
+        radial-gradient(circle at top left, rgba(115, 224, 194, 0.16), transparent 28%),
+        linear-gradient(180deg, rgba(11, 19, 32, 0.96), rgba(8, 16, 29, 0.94));
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .start-card h2 {
+      margin: 0 0 10px;
+      font-size: 34px;
+      line-height: 1.05;
+    }
+
+    .start-card p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .start-card .status {
+      text-align: left;
+      margin-top: 14px;
+    }
+
+    #app {
+      display: grid;
+      grid-template-columns: minmax(300px, 360px) 1fr;
+      height: 100vh;
+    }
+
+    .sidebar {
+      padding: 22px;
+      background: linear-gradient(180deg, rgba(8, 16, 29, 0.9), rgba(8, 16, 29, 0.68));
+      border-right: 1px solid var(--line);
+      backdrop-filter: blur(18px);
+      overflow-y: auto;
+    }
+
+    .brand {
+      margin-bottom: 18px;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: rgba(115, 224, 194, 0.12);
+      border: 1px solid rgba(115, 224, 194, 0.18);
+    }
+
+    h1 {
+      margin: 14px 0 10px;
+      font-size: 28px;
+      line-height: 1.05;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .panel {
+      margin-top: 18px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .panel h2 {
+      margin: 0 0 12px;
+      font-size: 16px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    label {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    input[type="file"],
+    input[type="range"],
+    button,
+    select {
+      width: 100%;
+    }
+
+    input[type="file"] {
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px dashed rgba(122, 183, 255, 0.42);
+      background: rgba(122, 183, 255, 0.08);
+      color: var(--text);
+    }
+
+    button {
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #04121b;
+      background: linear-gradient(135deg, var(--accent), #c4f8e9);
+      cursor: pointer;
+      transition: transform 140ms ease, box-shadow 140ms ease;
+      box-shadow: 0 10px 30px rgba(115, 224, 194, 0.26);
+    }
+
+    button.secondary {
+      color: var(--text);
+      background: linear-gradient(135deg, rgba(122, 183, 255, 0.2), rgba(122, 183, 255, 0.1));
+      border: 1px solid rgba(122, 183, 255, 0.22);
+      box-shadow: none;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      cursor: wait;
+      opacity: 0.65;
+      transform: none;
+    }
+
+    .status {
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(122, 183, 255, 0.08);
+      border: 1px solid rgba(122, 183, 255, 0.18);
+      color: var(--text);
+      line-height: 1.45;
+    }
+
+    .status.error {
+      color: #ffe7e7;
+      background: rgba(255, 138, 138, 0.1);
+      border-color: rgba(255, 138, 138, 0.22);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric.full {
+      grid-column: 1 / -1;
+    }
+
+    .metric {
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .metric strong {
+      font-size: 15px;
+    }
+
+    .hint-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .hint-list li {
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    .hint-list strong {
+      color: var(--text);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .workspace {
+      position: relative;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    #viewer {
+      width: 100%;
+      height: 100%;
+    }
+
+    .hud {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .camera-card,
+    .gesture-pill,
+    .watermark {
+      position: absolute;
+      border: 1px solid var(--line);
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+    }
+
+    .camera-card {
+      right: 20px;
+      top: 20px;
+      width: min(320px, 28vw);
+      aspect-ratio: 4 / 3;
+      border-radius: 18px;
+      overflow: hidden;
+      background: var(--panel-strong);
+    }
+
+    #webcam,
+    #hand-overlay {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    .gesture-pill {
+      left: 20px;
+      top: 20px;
+      padding: 12px 14px;
+      border-radius: 999px;
+      background: rgba(8, 16, 29, 0.72);
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      color: var(--text);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent-2);
+      box-shadow: 0 0 18px rgba(122, 183, 255, 0.65);
+    }
+
+    .watermark {
+      left: 20px;
+      bottom: 20px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(8, 16, 29, 0.64);
+      color: var(--muted);
+      line-height: 1.45;
+      max-width: 500px;
+    }
+
+    @media (max-width: 980px) {
+      #app {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        z-index: 20;
+        width: min(100%, 360px);
+      }
+
+      .camera-card {
+        width: min(44vw, 240px);
+      }
+
+      .watermark {
+        max-width: 70vw;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="start-overlay" class="start-overlay">
+    <div class="start-card">
+      <div class="eyebrow">Reference Camera Flow</div>
+      <h2>Start Hand Tracking</h2>
+      <p>
+        Click once to allow webcam permission, then use your hand to control the uploaded 3D model.
+      </p>
+      <button id="start-button" type="button">Allow Camera And Start</button>
+      <div id="overlay-status" class="status">Waiting for your click to request camera permission.</div>
     </div>
+  </div>
 
-    <div class="background-glow glow-left"></div>
-    <div class="background-glow glow-right"></div>
-    <div class="noise"></div>
-
-    <main class="app">
-      <section class="hero-card">
-        <p class="eyebrow">Modern Love Rain</p>
-        <h1>Falling words, soft motion, and a 3D love feeling.</h1>
+  <div id="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="eyebrow">Webcam + Hand Gestures</div>
+        <h1>3D Model Viewer</h1>
         <p class="subtitle">
-          Touch the screen to push the falling love away. Tilt your phone for a
-          dreamy gyro-powered depth effect.
+          Upload a model, turn on your webcam, and control the object using hand gestures like grab, pinch, pan, rotate, and scale.
         </p>
+      </div>
 
-        <div class="controls">
-          <button class="gyro-button" id="gyroButton" type="button">
-            Enable Gyro 3D
-          </button>
-          <p class="hint" id="statusText">
-            Move your mouse or touch the screen to interact.
-          </p>
+      <section class="panel">
+        <h2>Setup</h2>
+        <div class="stack">
+          <label>
+            Upload a model
+            <input id="model-input" type="file" accept=".glb,.gltf,.obj,.stl" />
+          </label>
+          <button id="webcam-button">Enable Webcam Tracking</button>
+          <button id="reset-button" class="secondary" type="button">Reset Camera + Model</button>
+          <div id="status" class="status">Waiting for a model and webcam permission.</div>
         </div>
+      </section>
 
-        <div class="gyro-demo">
-          <div class="gyro-demo-head">
-            <p class="gyro-demo-label">Gyro Test</p>
-            <p class="gyro-demo-text">Tilt your phone and watch the ball move.</p>
+      <section class="panel">
+        <h2>Sensitivity</h2>
+        <div class="stack">
+          <label>
+            Rotation speed
+            <input id="rotate-speed" type="range" min="0.4" max="3.5" step="0.1" value="1.4" />
+          </label>
+          <label>
+            Pan speed
+            <input id="pan-speed" type="range" min="0.2" max="3.5" step="0.1" value="1.1" />
+          </label>
+          <label>
+            Scale speed
+            <input id="scale-speed" type="range" min="0.2" max="3.5" step="0.1" value="1.2" />
+          </label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Live State</h2>
+        <div class="metrics">
+          <div class="metric">
+            <span>Tracked Hands</span>
+            <strong id="hands-count">0</strong>
           </div>
-          <div class="gyro-pad" id="gyroPad" aria-label="Gyro ball test area">
-            <div class="gyro-ball" id="gyroBall"></div>
+          <div class="metric">
+            <span>Current Gesture</span>
+            <strong id="gesture-name">Idle</strong>
+          </div>
+          <div class="metric full">
+            <span>Camera Diagnostics</span>
+            <strong id="camera-diagnostics">Waiting to check browser camera support.</strong>
           </div>
         </div>
       </section>
 
-      <section class="scene-shell">
-        <div class="scene" id="scene" aria-label="Animated falling love text">
-          <div class="scene-depth"></div>
-        </div>
+      <section class="panel">
+        <h2>How To Use</h2>
+        <ul class="hint-list">
+          <li><strong>Grab / fist</strong>Close one hand and move it to rotate the model.</li>
+          <li><strong>Pinch</strong>Touch thumb and index finger together with one hand to pan the model.</li>
+          <li><strong>Two hands</strong>Use both hands at once to scale the model by moving your hands apart or together.</li>
+          <li><strong>Best results</strong>Keep your hands inside the webcam frame and use even lighting.</li>
+        </ul>
       </section>
+    </aside>
+
+    <main class="workspace">
+      <div id="viewer"></div>
+      <div class="hud">
+        <div class="gesture-pill">
+          <div class="dot"></div>
+          <span id="gesture-banner">Gesture: Idle</span>
+        </div>
+        <div class="camera-card">
+          <video id="webcam" playsinline muted></video>
+          <canvas id="hand-overlay"></canvas>
+        </div>
+        <div class="watermark">
+          This runs best from a local web server like `http://localhost`, because webcam access is usually blocked when opening an HTML file directly with `file://`.
+        </div>
+      </div>
     </main>
+  </div>
 
-    <script src="script.js"></script>
-  </body>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+
+  <script type="module">
+    import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+    import { OrbitControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js";
+    import { GLTFLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
+    import { OBJLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/OBJLoader.js";
+    import { STLLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/STLLoader.js";
+
+    const viewer = document.getElementById("viewer");
+    const startOverlay = document.getElementById("start-overlay");
+    const startButton = document.getElementById("start-button");
+    const overlayStatusEl = document.getElementById("overlay-status");
+    const modelInput = document.getElementById("model-input");
+    const webcamButton = document.getElementById("webcam-button");
+    const resetButton = document.getElementById("reset-button");
+    const statusEl = document.getElementById("status");
+    const handsCountEl = document.getElementById("hands-count");
+    const gestureNameEl = document.getElementById("gesture-name");
+    const gestureBannerEl = document.getElementById("gesture-banner");
+    const cameraDiagnosticsEl = document.getElementById("camera-diagnostics");
+    const webcamEl = document.getElementById("webcam");
+    const overlay = document.getElementById("hand-overlay");
+    const overlayCtx = overlay.getContext("2d");
+
+    const rotateSpeedInput = document.getElementById("rotate-speed");
+    const panSpeedInput = document.getElementById("pan-speed");
+    const scaleSpeedInput = document.getElementById("scale-speed");
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x08101d);
+    scene.fog = new THREE.Fog(0x08101d, 8, 28);
+
+    const camera = new THREE.PerspectiveCamera(52, viewer.clientWidth / viewer.clientHeight, 0.1, 100);
+    camera.position.set(0, 1.2, 4.8);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(viewer.clientWidth, viewer.clientHeight);
+    viewer.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.enablePan = false;
+    controls.enableZoom = false;
+
+    const hemi = new THREE.HemisphereLight(0xd6ebff, 0x122033, 1.4);
+    scene.add(hemi);
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.1);
+    keyLight.position.set(3, 5, 4);
+    scene.add(keyLight);
+
+    const rimLight = new THREE.DirectionalLight(0x73e0c2, 1.0);
+    rimLight.position.set(-4, 2, -3);
+    scene.add(rimLight);
+
+    const floor = new THREE.Mesh(
+      new THREE.CircleGeometry(8, 72),
+      new THREE.MeshStandardMaterial({
+        color: 0x0d1829,
+        transparent: true,
+        opacity: 0.95,
+        roughness: 0.9,
+        metalness: 0.08
+      })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -1.35;
+    scene.add(floor);
+
+    const grid = new THREE.GridHelper(12, 24, 0x31558a, 0x1b2a44);
+    grid.position.y = -1.34;
+    scene.add(grid);
+
+    const modelRoot = new THREE.Group();
+    const modelContent = new THREE.Group();
+    modelRoot.add(modelContent);
+    scene.add(modelRoot);
+
+    let activeModel = null;
+    let objectUrl = null;
+    let mediaPipeHands = null;
+    let mediaPipeCamera = null;
+    let trackingStarted = false;
+
+    const gestureState = {
+      current: "Idle",
+      rotationAnchor: null,
+      panAnchor: null,
+      scaleAnchor: null
+    };
+
+    function setStatus(message, isError = false) {
+      statusEl.textContent = message;
+      statusEl.classList.toggle("error", isError);
+    }
+
+    function setOverlayStatus(message, isError = false) {
+      overlayStatusEl.textContent = message;
+      overlayStatusEl.classList.toggle("error", isError);
+    }
+
+    function updateGesture(name, handCount) {
+      gestureState.current = name;
+      gestureNameEl.textContent = name;
+      gestureBannerEl.textContent = `Gesture: ${name}`;
+      handsCountEl.textContent = String(handCount);
+    }
+
+    function setDiagnostics(message) {
+      cameraDiagnosticsEl.textContent = message;
+    }
+
+    function clearGestureAnchors() {
+      gestureState.rotationAnchor = null;
+      gestureState.panAnchor = null;
+      gestureState.scaleAnchor = null;
+    }
+
+    function frameObject(object) {
+      modelRoot.position.set(0, 0, 0);
+      modelRoot.rotation.set(0, 0, 0);
+      modelRoot.scale.setScalar(1);
+
+      object.position.set(0, 0, 0);
+      object.rotation.set(0, 0, 0);
+      object.scale.setScalar(1);
+
+      const box = new THREE.Box3().setFromObject(object);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+
+      object.position.sub(center);
+
+      const maxDim = Math.max(size.x, size.y, size.z) || 1;
+      const scale = 2.3 / maxDim;
+      object.scale.setScalar(scale);
+
+      camera.position.set(0.8, 0.8, 4.5);
+      camera.lookAt(0, 0, 0);
+      controls.target.set(0, 0, 0);
+      controls.update();
+    }
+
+    function addFallbackModel() {
+      modelContent.clear();
+      const geometry = new THREE.TorusKnotGeometry(0.72, 0.24, 160, 24);
+      const material = new THREE.MeshStandardMaterial({
+        color: 0x7ab7ff,
+        roughness: 0.2,
+        metalness: 0.45
+      });
+      activeModel = new THREE.Mesh(geometry, material);
+      modelContent.add(activeModel);
+      frameObject(activeModel);
+    }
+
+    function cleanupObjectUrl() {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+        objectUrl = null;
+      }
+    }
+
+    function normalizeMaterials(object) {
+      object.traverse((child) => {
+        if (!child.isMesh) return;
+        child.castShadow = true;
+        child.receiveShadow = true;
+        if (Array.isArray(child.material)) return;
+        if (!child.material) {
+          child.material = new THREE.MeshStandardMaterial({ color: 0xbfd3ff });
+        }
+      });
+    }
+
+    function loadModel(file) {
+      cleanupObjectUrl();
+      objectUrl = URL.createObjectURL(file);
+      const extension = file.name.split(".").pop().toLowerCase();
+
+      modelContent.clear();
+      activeModel = null;
+      clearGestureAnchors();
+      updateGesture("Idle", 0);
+
+      const onSuccess = (object) => {
+        normalizeMaterials(object);
+        activeModel = object;
+        modelContent.add(object);
+        frameObject(object);
+        setStatus(`Loaded ${file.name} into the viewer. Enable the webcam and start using gestures.`);
+      };
+
+      const onError = (error) => {
+        console.error(error);
+        setStatus(`Could not load ${file.name}. Try a .glb, .gltf, .obj, or .stl file.`, true);
+      };
+
+      if (extension === "glb" || extension === "gltf") {
+        new GLTFLoader().load(
+          objectUrl,
+          (gltf) => onSuccess(gltf.scene),
+          undefined,
+          onError
+        );
+        return;
+      }
+
+      if (extension === "obj") {
+        new OBJLoader().load(objectUrl, onSuccess, undefined, onError);
+        return;
+      }
+
+      if (extension === "stl") {
+        new STLLoader().load(
+          objectUrl,
+          (geometry) => {
+            geometry.computeVertexNormals();
+            const mesh = new THREE.Mesh(
+              geometry,
+              new THREE.MeshStandardMaterial({
+                color: 0xb9d7ff,
+                metalness: 0.2,
+                roughness: 0.55
+              })
+            );
+            onSuccess(mesh);
+          },
+          undefined,
+          onError
+        );
+        return;
+      }
+
+      setStatus(`Unsupported file type: .${extension}`, true);
+    }
+
+    modelInput.addEventListener("change", (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      setStatus(`Loading ${file.name}...`);
+      loadModel(file);
+    });
+
+    resetButton.addEventListener("click", () => {
+      if (!activeModel) {
+        addFallbackModel();
+      } else {
+        frameObject(activeModel);
+      }
+      clearGestureAnchors();
+      updateGesture("Idle", 0);
+      setStatus("Camera and model reset.");
+    });
+
+    function resizeRenderer() {
+      const width = viewer.clientWidth;
+      const height = viewer.clientHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    }
+
+    window.addEventListener("resize", resizeRenderer);
+    resizeRenderer();
+    addFallbackModel();
+    setStatus("Demo object ready. Upload your own model when you want.");
+
+    const originLabel = `${window.location.protocol}//${window.location.host || "local-file"}`;
+    const secureLabel = window.isSecureContext ? "secure context" : "not secure";
+    const mediaLabel = navigator.mediaDevices?.getUserMedia ? "camera API found" : "camera API missing";
+    setDiagnostics(`${originLabel} | ${secureLabel} | ${mediaLabel}`);
+
+    function landmarkDistance(a, b) {
+      const dx = a.x - b.x;
+      const dy = a.y - b.y;
+      const dz = (a.z || 0) - (b.z || 0);
+      return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    function midpoint(a, b) {
+      return {
+        x: (a.x + b.x) / 2,
+        y: (a.y + b.y) / 2
+      };
+    }
+
+    function getHandDescriptor(landmarks) {
+      const thumbTip = landmarks[4];
+      const indexTip = landmarks[8];
+      const middleTip = landmarks[12];
+      const ringTip = landmarks[16];
+      const pinkyTip = landmarks[20];
+      const wrist = landmarks[0];
+
+      const pinchDistance = landmarkDistance(thumbTip, indexTip);
+      const palmWidth = landmarkDistance(landmarks[5], landmarks[17]) || 0.1;
+      const curlAverage =
+        (landmarkDistance(indexTip, wrist) +
+          landmarkDistance(middleTip, wrist) +
+          landmarkDistance(ringTip, wrist) +
+          landmarkDistance(pinkyTip, wrist)) /
+        4;
+
+      const handCenter = {
+        x: (wrist.x + landmarks[9].x + landmarks[5].x + landmarks[17].x) / 4,
+        y: (wrist.y + landmarks[9].y + landmarks[5].y + landmarks[17].y) / 4
+      };
+
+      const isPinch = pinchDistance < palmWidth * 0.34;
+      const isGrab = curlAverage < palmWidth * 1.15 && !isPinch;
+
+      return {
+        landmarks,
+        center: handCenter,
+        pinchPoint: midpoint(thumbTip, indexTip),
+        pinchDistance,
+        palmWidth,
+        isPinch,
+        isGrab
+      };
+    }
+
+    function screenToWorldDelta(deltaX, deltaY) {
+      return {
+        x: deltaX * Number(panSpeedInput.value) * 2.2,
+        y: deltaY * Number(panSpeedInput.value) * 2.2
+      };
+    }
+
+    function applyGesture(descriptors) {
+      if (!activeModel) return;
+
+      if (descriptors.length >= 2) {
+        const [first, second] = descriptors;
+        const handDistance = Math.hypot(first.center.x - second.center.x, first.center.y - second.center.y);
+        if (gestureState.scaleAnchor == null) {
+          gestureState.scaleAnchor = handDistance;
+        } else {
+          const change = handDistance - gestureState.scaleAnchor;
+          const multiplier = 1 + change * Number(scaleSpeedInput.value) * 2.6;
+          const nextScale = THREE.MathUtils.clamp(modelRoot.scale.x * multiplier, 0.15, 8);
+          modelRoot.scale.setScalar(nextScale);
+          gestureState.scaleAnchor = handDistance;
+        }
+        gestureState.rotationAnchor = null;
+        gestureState.panAnchor = null;
+        updateGesture("Scale", descriptors.length);
+        return;
+      }
+
+      const hand = descriptors[0];
+      if (!hand) {
+        clearGestureAnchors();
+        updateGesture("Idle", 0);
+        return;
+      }
+
+      if (hand.isGrab) {
+        if (!gestureState.rotationAnchor) {
+          gestureState.rotationAnchor = { ...hand.center };
+        } else {
+          const deltaX = hand.center.x - gestureState.rotationAnchor.x;
+          const deltaY = hand.center.y - gestureState.rotationAnchor.y;
+          modelRoot.rotation.y += deltaX * Number(rotateSpeedInput.value) * 6.5;
+          modelRoot.rotation.x += deltaY * Number(rotateSpeedInput.value) * 6.5;
+          gestureState.rotationAnchor = { ...hand.center };
+        }
+        gestureState.panAnchor = null;
+        gestureState.scaleAnchor = null;
+        updateGesture("Rotate", 1);
+        return;
+      }
+
+      if (hand.isPinch) {
+        if (!gestureState.panAnchor) {
+          gestureState.panAnchor = { ...hand.pinchPoint };
+        } else {
+          const deltaX = hand.pinchPoint.x - gestureState.panAnchor.x;
+          const deltaY = hand.pinchPoint.y - gestureState.panAnchor.y;
+          const worldDelta = screenToWorldDelta(deltaX, deltaY);
+          modelRoot.position.x += worldDelta.x;
+          modelRoot.position.y -= worldDelta.y;
+          gestureState.panAnchor = { ...hand.pinchPoint };
+        }
+        gestureState.rotationAnchor = null;
+        gestureState.scaleAnchor = null;
+        updateGesture("Pan", 1);
+        return;
+      }
+
+      clearGestureAnchors();
+      updateGesture("Tracked", 1);
+    }
+
+    function drawHands(results) {
+      const width = overlay.clientWidth;
+      const height = overlay.clientHeight;
+      overlay.width = width;
+      overlay.height = height;
+      overlayCtx.clearRect(0, 0, width, height);
+
+      if (!results.multiHandLandmarks) {
+        return [];
+      }
+
+      return results.multiHandLandmarks.map((landmarks) => {
+        drawConnectors(overlayCtx, landmarks, HAND_CONNECTIONS, {
+          color: "#73e0c2",
+          lineWidth: 3
+        });
+        drawLandmarks(overlayCtx, landmarks, {
+          color: "#7ab7ff",
+          fillColor: "#eef4ff",
+          lineWidth: 1.5,
+          radius: 4
+        });
+        return getHandDescriptor(landmarks);
+      });
+    }
+
+    async function startTracking() {
+      if (trackingStarted) {
+        setStatus("Webcam tracking is already running.");
+        setOverlayStatus("Camera is already active.");
+        setDiagnostics("Camera stream is active.");
+        return;
+      }
+
+      webcamButton.disabled = true;
+      startButton.disabled = true;
+      setStatus("Requesting webcam access...");
+      setOverlayStatus("Requesting webcam permission...");
+
+      try {
+        if (!window.isSecureContext) {
+          throw new Error("Open this from localhost or https first.");
+        }
+
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("This browser does not support webcam access.");
+        }
+
+        if (navigator.permissions?.query) {
+          try {
+            const permission = await navigator.permissions.query({ name: "camera" });
+            setDiagnostics(`Camera permission state: ${permission.state}`);
+          } catch (error) {
+            setDiagnostics("Permissions API unavailable, continuing with direct camera request.");
+          }
+        }
+
+        const warmupStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 1280, height: 720, facingMode: "user" },
+          audio: false
+        });
+        warmupStream.getTracks().forEach((track) => track.stop());
+
+        mediaPipeHands = new Hands({
+          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+
+        mediaPipeHands.setOptions({
+          maxNumHands: 2,
+          modelComplexity: 1,
+          minDetectionConfidence: 0.7,
+          minTrackingConfidence: 0.7
+        });
+
+        mediaPipeHands.onResults((results) => {
+          const descriptors = drawHands(results);
+          applyGesture(descriptors);
+        });
+
+        mediaPipeCamera = new Camera(webcamEl, {
+          onFrame: async () => {
+            if (mediaPipeHands) {
+              await mediaPipeHands.send({ image: webcamEl });
+            }
+          },
+          width: 1280,
+          height: 720,
+          facingMode: "user"
+        });
+
+        await mediaPipeCamera.start();
+        trackingStarted = true;
+        webcamButton.textContent = "Webcam Tracking On";
+        startOverlay.classList.add("hidden");
+        setOverlayStatus("Camera connected.");
+        setDiagnostics("Camera connected and MediaPipe tracking is active.");
+        setStatus("Webcam tracking is live. Use one hand to rotate or pan, and two hands to scale.");
+      } catch (error) {
+        console.error(error);
+        const readableError = error && error.name ? `${error.name}: ${error.message}` : error.message;
+        setDiagnostics(readableError);
+        setOverlayStatus(`Camera failed: ${readableError}`, true);
+        setStatus(`Webcam access failed: ${error.message}. Allow camera permission for localhost and try again.`, true);
+        webcamButton.textContent = "Enable Webcam Tracking";
+        webcamButton.disabled = false;
+        startButton.disabled = false;
+      }
+    }
+
+    webcamButton.addEventListener("click", startTracking);
+    startButton.addEventListener("click", startTracking);
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    animate();
+  </script>
+</body>
 </html>
